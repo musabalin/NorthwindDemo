@@ -34,8 +34,10 @@ namespace WebAPI
             services.AddControllers();
             //IoC
             //Birisi Constructor'da IproductService isterse ona product manager new'i ver demektir
-            services.AddSingleton<IProductService, ProductManager>();
-            services.AddSingleton<IProductDal, EfProductDal>();
+            //services.AddSingleton<IProductService, ProductManager>();
+            //services.AddSingleton<IProductDal, EfProductDal>();
+
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "WebAPI", Version = "v1" });
