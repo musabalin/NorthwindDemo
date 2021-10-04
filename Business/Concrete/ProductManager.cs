@@ -1,8 +1,10 @@
 ﻿using Business.Abstract;
+using Business.CCS;
 using Business.Constants;
 using Business.ValidationRules.FluentValidation;
 using Core.Aspects.Autofac.Validation;
 using Core.CrossCuttingConserns.Validation;
+using Core.Utilities.Business;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
 using Entities.Concrete;
@@ -19,10 +21,13 @@ namespace Business.Concrete
     public class ProductManager : IProductService
     {
         IProductDal _productDal;
+        ICategoryService _categoryService;
 
-        public ProductManager(IProductDal productDal)
+        public ProductManager(IProductDal productDal, ICategoryService categoryService)
         {
             _productDal = productDal;
+            _categoryService = categoryService;
+
         }
 
         public IDataResult<List<Product>> GetAll()
@@ -49,7 +54,13 @@ namespace Business.Concrete
         [ValidationAspect(typeof(ProductValidator))]
         public IResult Add(Product product)
         {
-           
+            
+            IResult result = BusinessRule.Run((CheckIfProductCountOfCategoryCorrect(product.CategoryId)),
+                    CheckName(product.ProductName),CheckCategoryCount());
+            if (result!=null)
+            {
+                return result;
+            }
             _productDal.Add(product);
             return new SuccessResult(Messages.ProductAdded);
 
@@ -72,5 +83,36 @@ namespace Business.Concrete
         {
             return new SuccessDataResult<Product>(_productDal.Get(p => p.ProductId == id));
         }
+
+        //BusinessRule
+        private IResult CheckIfProductCountOfCategoryCorrect(int categoryId)
+        {
+            var result = _productDal.GetAll(p => p.CategoryId == categoryId).Count;
+            if (result > 10)
+            {
+                return new ErrorResult("Kategori Sayısı 10'dan büyük olamaz.");
+            }
+            return new SuccessResult();
+        }
+        private IResult CheckName(string productName)
+        {
+            var result = _productDal.GetAll(p => p.ProductName == productName).Any();
+            if (result == true)
+            {
+                return new SuccessResult();
+            }
+            return new ErrorResult("Bu isimde bir ürün var");
+        }
+        private IResult CheckCategoryCount()
+        {
+            var result = _categoryService.GetAll();
+            if (result.Data.Count>15)
+            {
+                return new ErrorResult("Kategori Sayısı aşıldı.");
+            }
+            return new SuccessResult();
+
+        }
+       
     }
 }
